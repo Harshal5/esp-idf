@@ -206,7 +206,7 @@ static void pmu_lp_system_init_default(pmu_context_t *ctx)
     }
 }
 
-void pmu_init(void)
+void IRAM_ATTR pmu_init(void)
 {
     /* Peripheral reg i2c power up */
     SET_PERI_REG_MASK(PMU_RF_PWC_REG, PMU_PERIF_I2C_RSTB);

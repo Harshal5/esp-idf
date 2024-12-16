@@ -8,6 +8,7 @@
 #include "string.h"
 #include "sdkconfig.h"
 #include "esp_err.h"
+#include "esp_attr.h"
 #include "esp_log.h"
 #include "esp_rom_gpio.h"
 #include "esp32c5/rom/spi_flash.h"
@@ -30,7 +31,7 @@
 #include "hal/cache_ll.h"
 #include "hal/mspi_timing_tuning_ll.h"
 
-void bootloader_flash_update_id()
+void IRAM_ATTR bootloader_flash_update_id()
 {
     esp_rom_spiflash_chip_t *chip = &rom_spiflash_legacy_data->chip;
     chip->device_id = bootloader_read_flash_id();

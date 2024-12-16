@@ -8,11 +8,12 @@
 #include "soc/soc_caps.h"
 #include "esp_types.h"
 #include "esp_bit_defs.h"
+#include "esp_attr.h"
 #include "esp_private/esp_gpio_reserve.h"
 
 static _Atomic uint64_t s_reserved_pin_mask = ATOMIC_VAR_INIT(~(SOC_GPIO_VALID_OUTPUT_GPIO_MASK));
 
-uint64_t esp_gpio_reserve(uint64_t gpio_mask)
+uint64_t IRAM_ATTR esp_gpio_reserve(uint64_t gpio_mask)
 {
     return atomic_fetch_or(&s_reserved_pin_mask, gpio_mask);
 }
