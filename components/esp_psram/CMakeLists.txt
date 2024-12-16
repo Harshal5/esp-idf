@@ -6,7 +6,7 @@ endif()
 
 set(includes "include")
 
-set(priv_requires heap spi_flash esp_mm)
+set(priv_requires heap spi_flash esp_mm xz)
 if(${target} STREQUAL "esp32")
     list(APPEND priv_requires bootloader_support esp_driver_spi esp_driver_gpio)
 endif()
