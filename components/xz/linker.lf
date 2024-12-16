@@ -1,0 +1,4 @@
+[mapping:xz]
+archive: libxz.a
+entries:
+    * (noflash)
