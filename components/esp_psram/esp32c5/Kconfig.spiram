@@ -68,5 +68,15 @@ menu "SPI RAM config"
             This is a helper indicating this condition:
             `CONFIG_SPIRAM_XIP_FROM_PSRAM && CONFIG_IDF_TARGET_ESP32C5`
 
+    config SPIRAM_DECOMPRESS_FETCH_INSTRUCTIONS
+        bool "Application's instruction segment is decompressed when moving from the SPI Flash to PSRAM"
+        depends on SPIRAM_FETCH_INSTRUCTIONS
+        default n
+
+    config SPIRAM_DECOMPRESS_RODATA
+        bool "Application's rodata segment is decompressed when moving from the SPI Flash to PSRAM"
+        depends on SPIRAM_FETCH_INSTRUCTIONS
+        default n
+
     source "$IDF_PATH/components/esp_psram/Kconfig.spiram.common"    # insert non-chip-specific items here
 endmenu

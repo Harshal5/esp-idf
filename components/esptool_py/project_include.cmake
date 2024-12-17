@@ -97,6 +97,14 @@ endif()
 list(APPEND esptool_elf2image_args --min-rev-full ${CONFIG_ESP_REV_MIN_FULL})
 list(APPEND esptool_elf2image_args --max-rev-full ${CONFIG_ESP_REV_MAX_FULL})
 
+if(CONFIG_SPIRAM_DECOMPRESS_RODATA)
+    list(APPEND esptool_elf2image_args --compress-flash-rodata)
+endif()
+
+if(CONFIG_SPIRAM_DECOMPRESS_FETCH_INSTRUCTIONS)
+    list(APPEND esptool_elf2image_args --compress-flash-instructions)
+endif()
+
 if(CONFIG_ESPTOOLPY_HEADER_FLASHSIZE_UPDATE)
     # Set ESPFLASHSIZE to 'detect' *after* esptool_elf2image_args are generated,
     # as elf2image can't have 'detect' as an option...
