@@ -353,6 +353,7 @@ static inline void spimem_flash_ll_get_buffer_data(spi_mem_dev_t *dev, void *buf
  * @param buffer Buffer holding the data
  * @param length Length of data in bytes.
  */
+__attribute__((always_inline))
 static inline void spimem_flash_ll_set_buffer_data(spi_mem_dev_t *dev, const void *buffer, uint32_t length)
 {
     // Load data registers, word at a time
