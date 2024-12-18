@@ -22,6 +22,10 @@
 
 #include "esp_private/startup_internal.h"
 
+#if CONFIG_SPIRAM
+#include "esp_psram.h"
+#endif
+
 // Ensure that system configuration matches the underlying number of cores.
 // This should enable us to avoid checking for both every time.
 #if !(SOC_CPU_CORES_NUM > 1) && !CONFIG_ESP_SYSTEM_SINGLE_CORE_MODE
@@ -199,6 +203,21 @@ static void do_secondary_init(void)
 
 static void start_cpu0_default(void)
 {
+
+    // do_hal_gpio_restoration();
+
+#if !CONFIG_SPIRAM_BOOT_INIT && CONFIG_SPIRAM
+    if (!esp_psram_is_initialized()) {
+        esp_err_t ret = esp_psram_init();
+        if (ret != ESP_OK) {
+            ESP_EARLY_LOGE("TAG", "Failed to initialise SPIRAM (%d)", ret);
+            return;
+        }
+        ESP_EARLY_LOGI("TAG", "PSRAM initialised");
+    } else {
+        ESP_EARLY_LOGE("TAG", "PSRAM already initialised");
+    }
+#endif
     // Initialize core components and services.
     do_core_init();
 

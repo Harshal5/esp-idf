@@ -16,7 +16,7 @@
 
 #include "esp_private/startup_internal.h"
 
-static const char *TAG = "heap_init";
+static char *TAG = "heap_init";
 
 /* Linked-list of registered heaps */
 struct registered_heap_ll registered_heaps;

@@ -15,7 +15,7 @@ void* esp_xz_custom_malloc(size_t size)
         p = &heap_pool[heap_used_offset];
         heap_used_offset += size;
     }
-    ESP_EARLY_LOGI("esp_xz_custom_malloc", "heap_used_offset=%ld size=%u", heap_used_offset, size);
+    // ESP_EARLY_LOGI("esp_xz_custom_malloc", "heap_used_offset=%ld size=%u", heap_used_offset, size);
     return p;
 }
 
