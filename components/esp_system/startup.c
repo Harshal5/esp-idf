@@ -24,6 +24,7 @@
 
 #if CONFIG_SPIRAM
 #include "esp_psram.h"
+#include "driver/gpio.h"
 #endif
 
 // Ensure that system configuration matches the underlying number of cores.
@@ -201,10 +202,33 @@ static void do_secondary_init(void)
 #endif
 }
 
+#define GPIO_OUTPUT_IO_0    8
+#define GPIO_OUTPUT_IO_1    9
+#define GPIO_OUTPUT_PIN_SEL  ((1ULL<<GPIO_OUTPUT_IO_0) | (1ULL<<GPIO_OUTPUT_IO_1))
+
+static void do_hal_gpio_restoration(void)
+{
+    //zero-initialize the config structure.
+    gpio_config_t io_conf = {};
+    //disable interrupt
+    io_conf.intr_type = GPIO_INTR_DISABLE;
+    //set as output mode
+    io_conf.mode = GPIO_MODE_OUTPUT;
+    //bit mask of the pins that you want to set,e.g.GPIO18/19
+    io_conf.pin_bit_mask = GPIO_OUTPUT_PIN_SEL;
+    //disable pull-down mode
+    io_conf.pull_down_en = 0;
+    //disable pull-up mode
+    io_conf.pull_up_en = 0;
+
+    //configure GPIO with the given settings
+    gpio_config(&io_conf);
+}
+
 static void start_cpu0_default(void)
 {
 
-    // do_hal_gpio_restoration();
+    do_hal_gpio_restoration();
 
 #if !CONFIG_SPIRAM_BOOT_INIT && CONFIG_SPIRAM
     if (!esp_psram_is_initialized()) {
