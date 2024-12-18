@@ -4,8 +4,7 @@ set(priv_incs "port/include"
               "xz-embedded/linux/include/linux"
               "xz-embedded/linux/lib/xz")
 
-set(srcs "port/esp_xz_custom_malloc.c"
-         "src/xz_decompress.c"
+set(srcs "src/xz_decompress.c"
          "xz-embedded/linux/lib/xz/xz_dec_bcj.c"
          "xz-embedded/linux/lib/xz/xz_dec_lzma2.c"
          "xz-embedded/linux/lib/xz/xz_dec_stream.c")

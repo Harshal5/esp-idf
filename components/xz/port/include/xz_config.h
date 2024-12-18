@@ -39,12 +39,12 @@ typedef unsigned char bool;
 
 #include "xz.h"
 
-#include "esp_xz_custom_malloc.h"
+// #include "esp_xz_custom_malloc.h"
 
-#define kmalloc(size, flags) esp_xz_custom_malloc(size)
-#define kfree(ptr) esp_xz_custom_free(ptr)
-#define vmalloc(size) esp_xz_custom_malloc(size)
-#define vfree(ptr) esp_xz_custom_free(ptr)
+#define kmalloc(size, flags) malloc(size)
+#define kfree(ptr) free(ptr)
+#define vmalloc(size) malloc(size)
+#define vfree(ptr) free(ptr)
 
 #define memeq(a, b, size) (memcmp(a, b, size) == 0)
 #define memzero(buf, size) memset(buf, 0, size)

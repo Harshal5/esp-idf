@@ -75,6 +75,11 @@ SECTIONS
     *(.gnu.linkonce.s2.*)
     *(.jcr)
 
+    /* Addresses of memory regions reserved via SOC_RESERVE_MEMORY_REGION() */
+    ALIGNED_SYMBOL(4, soc_reserved_memory_region_start)
+    KEEP (*(.reserved_memory_address))
+    soc_reserved_memory_region_end = ABSOLUTE(.);
+
     mapping[dram0_data]
 
     _data_end = ABSOLUTE(.);
@@ -222,11 +227,6 @@ SECTIONS
     ALIGNED_SYMBOL(4, __init_array_start)
     KEEP (*(EXCLUDE_FILE (*crtend.* *crtbegin.*) .init_array))
     __init_array_end = ABSOLUTE(.);
-
-    /* Addresses of memory regions reserved via SOC_RESERVE_MEMORY_REGION() */
-    ALIGNED_SYMBOL(4, soc_reserved_memory_region_start)
-    KEEP (*(.reserved_memory_address))
-    soc_reserved_memory_region_end = ABSOLUTE(.);
 
     /* System init functions registered via ESP_SYSTEM_INIT_FN */
     ALIGNED_SYMBOL(4, _esp_system_init_fn_array_start)

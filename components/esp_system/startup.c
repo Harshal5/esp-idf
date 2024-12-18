@@ -24,6 +24,8 @@
 
 #if CONFIG_SPIRAM
 #include "esp_psram.h"
+#include "esp_heap_caps_init.h"
+#include "esp_heap_caps.h"
 #include "driver/gpio.h"
 #endif
 
@@ -222,13 +224,15 @@ static void do_hal_gpio_restoration(void)
     io_conf.pull_up_en = 0;
 
     //configure GPIO with the given settings
-    gpio_config(&io_conf);
+    // gpio_config(&io_conf);
 }
 
 static void start_cpu0_default(void)
 {
 
     do_hal_gpio_restoration();
+
+    heap_caps_init();
 
 #if !CONFIG_SPIRAM_BOOT_INIT && CONFIG_SPIRAM
     if (!esp_psram_is_initialized()) {

@@ -23,7 +23,7 @@ struct registered_heap_ll registered_heaps;
 
 ESP_SYSTEM_INIT_FN(init_heap, CORE, BIT(0), 100)
 {
-    heap_caps_init();
+    // heap_caps_init();
     return ESP_OK;
 }
 
