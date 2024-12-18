@@ -23,9 +23,10 @@
 #include "esp_private/startup_internal.h"
 
 #if CONFIG_SPIRAM
-#include "esp_psram.h"
 #include "esp_heap_caps_init.h"
 #include "esp_heap_caps.h"
+#include "esp_psram.h"
+#include "esp_private/esp_psram_extram.h"
 #include "driver/gpio.h"
 #endif
 
@@ -63,7 +64,7 @@ static volatile bool s_system_full_inited = false;
 const sys_startup_fn_t g_startup_fn[1] = { start_cpu0 };
 #endif
 
-static const char* TAG = "cpu_start";
+static char* TAG = "cpu_start";
 
 /**
  * Xtensa gcc is configured to emit a .ctors section, RISC-V gcc is configured with --enable-initfini-array
@@ -238,12 +239,23 @@ static void start_cpu0_default(void)
     if (!esp_psram_is_initialized()) {
         esp_err_t ret = esp_psram_init();
         if (ret != ESP_OK) {
-            ESP_EARLY_LOGE("TAG", "Failed to initialise SPIRAM (%d)", ret);
+            ESP_EARLY_LOGE(TAG, "Failed to initialise SPIRAM (%d)", ret);
             return;
         }
-        ESP_EARLY_LOGI("TAG", "PSRAM initialised");
+        ESP_EARLY_LOGI(TAG, "PSRAM initialised");
+
+#if (CONFIG_SPIRAM_USE_CAPS_ALLOC || CONFIG_SPIRAM_USE_MALLOC)
+        esp_err_t r = esp_psram_extram_add_to_heap_allocator();
+        if (r != ESP_OK) {
+            ESP_EARLY_LOGE(TAG, "External RAM could not be added to heap!");
+            abort();
+        }
+#if CONFIG_SPIRAM_USE_MALLOC
+        heap_caps_malloc_extmem_enable(CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL);
+#endif
+#endif
     } else {
-        ESP_EARLY_LOGE("TAG", "PSRAM already initialised");
+        ESP_EARLY_LOGE(TAG, "PSRAM already initialised");
     }
 #endif
     // Initialize core components and services.
