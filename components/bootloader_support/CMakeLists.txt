@@ -144,7 +144,8 @@ idf_component_register(SRCS "${srcs}"
                     INCLUDE_DIRS "${include_dirs}"
                     PRIV_INCLUDE_DIRS "${priv_include_dirs}"
                     REQUIRES "${requires}"
-                    PRIV_REQUIRES "${priv_requires}")
+                    PRIV_REQUIRES "${priv_requires}"
+                    LDFRAGMENTS "linker.lf")
 
 if(NOT BOOTLOADER_BUILD)
     if(CONFIG_SECURE_SIGNED_ON_UPDATE)

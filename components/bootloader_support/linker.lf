@@ -1,0 +1,4 @@
+[mapping:bootloader_support]
+archive: libbootloader_support.a
+entries:
+    bootloader_mem (noflash)

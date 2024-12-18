@@ -1,6 +1,10 @@
 [mapping:esp_hw_support]
 archive: libesp_hw_support.a
 entries:
+    cpu_region_protect (noflash)
+    modem_clock (noflash)
+    esp_clk (noflash)
+    sleep_modes (noflash)
     cpu: esp_cpu_stall (noflash)
     cpu: esp_cpu_unstall (noflash)
     cpu: esp_cpu_reset (noflash)

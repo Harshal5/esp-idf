@@ -1,6 +1,7 @@
 [mapping:spi_flash]
 archive: libspi_flash.a
 entries:
+    flash_ops (noflash)
     if APP_BUILD_TYPE_PURE_RAM_APP = n:
         spi_flash_chip_generic (noflash)
         spi_flash_chip_issi (noflash)

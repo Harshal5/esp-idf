@@ -1,6 +1,7 @@
 [mapping:riscv]
 archive: libriscv.a
 entries:
+    interrupt_clic (noflash)
     interrupt (noflash_text)
     interrupt:intr_handler_get (default)
     interrupt:intr_handler_set (default)
