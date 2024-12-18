@@ -74,7 +74,9 @@ static uint32_t mapped_size_decompress = 0;
 static size_t mapped_flash_pages = 0;
 static size_t mapped_psram_pages = 0;
 
-static uint8_t header[0x20] = { 0 };
+static size_t initial_data_not_to_be_decompressed = 0;
+
+static uint8_t header[0x120] = { 0 };
 
 #define DUMP_PSRAM 0
 
@@ -88,10 +90,10 @@ static int fill(void *buf, unsigned int size)
     uint32_t compressed_data_to_be_processed = (compressed_flash_text_length - compressed_data_processed > size) ? size : compressed_flash_text_length - compressed_data_processed;
 
     if (compressed_data_processed == 0) {
-        compressed_data_to_be_processed -= 0x20;
+        compressed_data_to_be_processed -= initial_data_not_to_be_decompressed;
     }
 
-    if (compressed_data_processed + 0x20 + compressed_data_to_be_processed > mapped_flash_pages * CONFIG_MMU_PAGE_SIZE) {
+    if (compressed_data_processed + initial_data_not_to_be_decompressed + compressed_data_to_be_processed > mapped_flash_pages * CONFIG_MMU_PAGE_SIZE) {
         uint32_t actual_mapped_len = 0;
         mmu_hal_map_region(MMU_LL_FLASH_MMU_ID, MMU_TARGET_FLASH0, flash_end_page_vaddr_decompress, flash_paddr_start_decompress + mapped_flash_pages * CONFIG_MMU_PAGE_SIZE, CONFIG_MMU_PAGE_SIZE, &actual_mapped_len);
         assert(actual_mapped_len == CONFIG_MMU_PAGE_SIZE);
@@ -99,14 +101,14 @@ static int fill(void *buf, unsigned int size)
         mapped_flash_pages++;
     }
 
-    ESP_EARLY_LOGI(TAG, "fill read: address: %x | size: %lu", flash_paddr_start_decompress + compressed_data_processed + 0x20, compressed_data_to_be_processed);
+    ESP_EARLY_LOGI(TAG, "fill read: address: %x | size: %lu", flash_paddr_start_decompress + compressed_data_processed + initial_data_not_to_be_decompressed, compressed_data_to_be_processed);
     ESP_EARLY_LOGI(TAG, "compressed_data_to_be_processed = %x", compressed_data_to_be_processed);
 
     if (compressed_data_processed == 0) {
-        memcpy(header, (uint8_t *) flash_end_page_vaddr_decompress, 0x20);
+        memcpy(header, (uint8_t *) flash_end_page_vaddr_decompress, initial_data_not_to_be_decompressed);
     }
 
-    memcpy(buf, ((uint8_t *) flash_end_page_vaddr_decompress + (0x20 + compressed_data_processed) % CONFIG_MMU_PAGE_SIZE), compressed_data_to_be_processed);
+    memcpy(buf, ((uint8_t *) flash_end_page_vaddr_decompress + (initial_data_not_to_be_decompressed + compressed_data_processed) % CONFIG_MMU_PAGE_SIZE), compressed_data_to_be_processed);
     compressed_data_processed += compressed_data_to_be_processed;
 
     return compressed_data_to_be_processed;
@@ -114,7 +116,7 @@ static int fill(void *buf, unsigned int size)
 
 static int flush(void *buf, unsigned int size)
 {
-    if (total_decompressed_data_size + 0x20 + size > mapped_psram_pages * CONFIG_MMU_PAGE_SIZE) {
+    if (total_decompressed_data_size + initial_data_not_to_be_decompressed + size > mapped_psram_pages * CONFIG_MMU_PAGE_SIZE) {
         uint32_t actual_mapped_len = 0;
         mmu_hal_map_region(MMU_LL_PSRAM_MMU_ID, MMU_TARGET_PSRAM0, target_vaddr_start_decompress + mapped_psram_pages * CONFIG_MMU_PAGE_SIZE, target_paddr_start_decompress + mapped_psram_pages * CONFIG_MMU_PAGE_SIZE, CONFIG_MMU_PAGE_SIZE, &actual_mapped_len);
         assert(actual_mapped_len == CONFIG_MMU_PAGE_SIZE);
@@ -124,17 +126,17 @@ static int flush(void *buf, unsigned int size)
     ESP_EARLY_LOGI(TAG, "flush write: address: %x | size: %lu", target_paddr_start_decompress + total_decompressed_data_size, size);
 
     if (total_decompressed_data_size == 0) {
-        memcpy((void *) target_vaddr_start_decompress, header, 0x20);
+        memcpy((void *) target_vaddr_start_decompress, header, initial_data_not_to_be_decompressed);
     }
 
-    memcpy((void *)(target_vaddr_start_decompress + total_decompressed_data_size + 0x20), buf, size);
+    memcpy((void *)(target_vaddr_start_decompress + total_decompressed_data_size + initial_data_not_to_be_decompressed), buf, size);
 
     total_decompressed_data_size += size;
 
     return size;
 }
 
-static uint32_t decompress_and_map(uint32_t flash_paddr_start, uint32_t size, uint32_t target_vaddr_start, uint32_t target_paddr_start)
+static uint32_t decompress_and_map(esp_xip_data_type_t data_type, uint32_t flash_paddr_start, uint32_t size, uint32_t target_vaddr_start, uint32_t target_paddr_start)
 {
     mapped_flash_pages = 0;
     mapped_psram_pages = 0;
@@ -147,6 +149,8 @@ static uint32_t decompress_and_map(uint32_t flash_paddr_start, uint32_t size, ui
     target_vaddr_start_decompress = target_vaddr_start;
     target_paddr_start_decompress = target_paddr_start;
 
+    initial_data_not_to_be_decompressed = data_type == XIP_INSTRUCTIONS ? 0x20 : 0x120;
+
     int decompressed_data_size = 0;
     int ret = xz_decompress(NULL, 0, &fill, &flush, NULL, &decompressed_data_size, &error);
     ESP_EARLY_LOGI(TAG, "ret = %d; Total compressed data processed  = %d", ret, decompressed_data_size);
@@ -154,7 +158,7 @@ static uint32_t decompress_and_map(uint32_t flash_paddr_start, uint32_t size, ui
     return ALIGN_UP_BY(total_decompressed_data_size, CONFIG_MMU_PAGE_SIZE);
 }
 
-static uint32_t s_do_decompress_and_load_from_flash(uint32_t flash_paddr_start, uint32_t size, uint32_t target_vaddr_start, uint32_t target_paddr_start)
+static uint32_t s_do_decompress_and_load_from_flash(esp_xip_data_type_t data_type, uint32_t flash_paddr_start, uint32_t size, uint32_t target_vaddr_start, uint32_t target_paddr_start)
 {
     flash_end_page_vaddr_decompress = SOC_DRAM_FLASH_ADDRESS_HIGH - CONFIG_MMU_PAGE_SIZE;
     ESP_EARLY_LOGV(TAG, "flash_paddr_start: 0x%"PRIx32", flash_end_page_vaddr_decompress: 0x%"PRIx32", size: 0x%"PRIx32", target_vaddr_start: 0x%"PRIx32, flash_paddr_start, flash_end_page_vaddr_decompress, size, target_vaddr_start);
@@ -164,7 +168,7 @@ static uint32_t s_do_decompress_and_load_from_flash(uint32_t flash_paddr_start, 
 
     mapped_size_decompress = 0;
 
-    mapped_size_decompress = decompress_and_map(flash_paddr_start, size, target_vaddr_start, target_paddr_start);
+    mapped_size_decompress = decompress_and_map(data_type, flash_paddr_start, size, target_vaddr_start, target_paddr_start);
     ESP_EARLY_LOGE(TAG, "size = %lx mapped_size_decompress: 0x%"PRIx32, size, mapped_size_decompress);
     assert(mapped_size_decompress == ALIGN_UP_BY(size, CONFIG_MMU_PAGE_SIZE));
 
@@ -229,7 +233,7 @@ esp_err_t mmu_config_psram_text_segment(uint32_t start_page, uint32_t psram_size
 
     uint32_t mapped_size = 0;
 #if CONFIG_SPIRAM_DECOMPRESS_FETCH_INSTRUCTIONS
-    mapped_size = s_do_decompress_and_load_from_flash(flash_irom_paddr_start, irom_size, irom_load_addr_aligned, MMU_PAGE_TO_BYTES(start_page));
+    mapped_size = s_do_decompress_and_load_from_flash(XIP_INSTRUCTIONS, flash_irom_paddr_start, irom_size, irom_load_addr_aligned, MMU_PAGE_TO_BYTES(start_page));
 #else
     mapped_size = s_do_load_from_flash(flash_irom_paddr_start, irom_size, irom_load_addr_aligned, MMU_PAGE_TO_BYTES(start_page));
 #endif /* CONFIG_SPIRAM_DECOMPRESS_FETCH_INSTRUCTIONS */
@@ -284,7 +288,7 @@ esp_err_t mmu_config_psram_rodata_segment(uint32_t start_page, uint32_t psram_si
 
     uint32_t mapped_size = 0;
 #if CONFIG_SPIRAM_DECOMPRESS_RODATA
-    mapped_size = s_do_decompress_and_load_from_flash(flash_drom_paddr_start, drom_size, drom_load_addr_aligned, MMU_PAGE_TO_BYTES(start_page));
+    mapped_size = s_do_decompress_and_load_from_flash(XIP_RODATA, flash_drom_paddr_start, drom_size, drom_load_addr_aligned, MMU_PAGE_TO_BYTES(start_page));
 #else
     mapped_size = s_do_load_from_flash(flash_drom_paddr_start, drom_size, drom_load_addr_aligned, MMU_PAGE_TO_BYTES(start_page));
 #endif /* CONFIG_SPIRAM_DECOMPRESS_RODATA */
