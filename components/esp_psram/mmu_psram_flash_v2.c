@@ -44,7 +44,7 @@ extern char _instruction_reserved_end;
 extern char _rodata_reserved_start;
 extern char _rodata_reserved_end;
 
-const static char *TAG = "mmu_psram";
+static char *TAG = "mmu_psram";
 static uint32_t s_irom_vaddr_start;
 static uint32_t s_drom_vaddr_start;
 static size_t s_irom_size;
@@ -154,6 +154,10 @@ static uint32_t decompress_and_map(esp_xip_data_type_t data_type, uint32_t flash
 
     int decompressed_data_size = 0;
     int ret = xz_decompress(NULL, 0, &fill, &flush, NULL, &decompressed_data_size, &error);
+    if (ret != 0) {
+        ESP_EARLY_LOGE(TAG, "Decompression failed");
+        return 0;
+    }
     // ESP_EARLY_LOGI(TAG, "ret = %d; Total compressed data processed  = %d", ret, decompressed_data_size);
 
     return ALIGN_UP_BY(total_decompressed_data_size, CONFIG_MMU_PAGE_SIZE);
@@ -179,6 +183,7 @@ static uint32_t s_do_decompress_and_load_from_flash(esp_xip_data_type_t data_typ
 }
 #endif /* CONFIG_SPIRAM_DECOMPRESS_FETCH_INSTRUCTIONS || CONFIG_SPIRAM_DECOMPRESS_RODATA */
 
+#if (CONFIG_SPIRAM_FETCH_INSTRUCTIONS && !CONFIG_SPIRAM_DECOMPRESS_FETCH_INSTRUCTIONS) || (CONFIG_SPIRAM_RODATA && !CONFIG_SPIRAM_DECOMPRESS_RODATA)
 static uint32_t s_do_load_from_flash(uint32_t flash_paddr_start, uint32_t size, uint32_t target_vaddr_start, uint32_t target_paddr_start)
 {
     uint32_t flash_end_page_vaddr = SOC_DRAM_FLASH_ADDRESS_HIGH - CONFIG_MMU_PAGE_SIZE;
@@ -210,6 +215,7 @@ static uint32_t s_do_load_from_flash(uint32_t flash_paddr_start, uint32_t size, 
 
     return mapped_size;
 }
+#endif /* !CONFIG_SPIRAM_DECOMPRESS_FETCH_INSTRUCTIONS || !CONFIG_SPIRAM_DECOMPRESS_RODATA */
 #endif //#if CONFIG_SPIRAM_FETCH_INSTRUCTIONS || CONFIG_SPIRAM_RODATA
 
 #if CONFIG_SPIRAM_FETCH_INSTRUCTIONS
