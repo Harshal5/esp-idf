@@ -174,7 +174,7 @@ __main() {
     # TODO: Need remove in release version
     __verbose "Installing the development version of esptool to support compressing flash segments"
     ${ESP_PYTHON} -m pip uninstall esptool -y
-    ${ESP_PYTHON} -m pip install git+ssh://git@github.com/Harshal5/esptool.git@feat/support_compressing_flash_segments
+    ${ESP_PYTHON} -m pip install git+https://git@github.com/Harshal5/esptool.git@feat/support_compressing_flash_segments
 
     __verbose "Done! You can now compile ESP-IDF projects."
     __verbose "Go to the project directory and run:"
