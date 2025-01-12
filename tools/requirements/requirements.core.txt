@@ -15,7 +15,7 @@ pyparsing
 pyelftools
 idf-component-manager
 esp-coredump
-esptool
+#esptool
 esp-idf-kconfig
 esp-idf-monitor
 esp-idf-nvs-partition-gen
