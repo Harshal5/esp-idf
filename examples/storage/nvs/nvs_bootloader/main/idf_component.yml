@@ -1,0 +1,3 @@
+dependencies:
+  led_strip:
+    path: ../led_strip
