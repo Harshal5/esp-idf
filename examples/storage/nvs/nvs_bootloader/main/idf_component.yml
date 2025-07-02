@@ -1,3 +1,5 @@
 dependencies:
   led_strip:
     path: ../led_strip
+  spi_driver:
+    path: ../spi_driver

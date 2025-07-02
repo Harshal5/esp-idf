@@ -7,7 +7,7 @@ if(CONFIG_SOC_GPSPI_SUPPORTED)
     list(APPEND srcs "src/led_strip_spi_dev.c")
 endif()
 
-list(APPEND public_requires "esp_driver_spi")
+list(APPEND public_requires "spi_driver")
 idf_component_register(SRCS ${srcs}
                        INCLUDE_DIRS "include" "interface"
                        REQUIRES ${public_requires})
