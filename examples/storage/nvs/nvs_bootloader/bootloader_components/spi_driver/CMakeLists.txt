@@ -17,5 +17,5 @@ endif()
 idf_component_register(
     SRCS ${srcs}
     INCLUDE_DIRS ${public_include}
-    REQUIRES hal soc
+    REQUIRES hal soc driver_hal
 )

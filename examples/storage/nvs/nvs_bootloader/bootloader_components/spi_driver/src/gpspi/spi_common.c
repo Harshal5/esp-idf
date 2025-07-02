@@ -15,6 +15,7 @@
 #include "esp_private/spi_common_internal.h"
 #include "hal/spi_hal.h"
 #include "hal/gpio_hal.h"
+#include "new_spi_ll.h"
 
 #define SPI_COMMON_ATTR IRAM_ATTR
 

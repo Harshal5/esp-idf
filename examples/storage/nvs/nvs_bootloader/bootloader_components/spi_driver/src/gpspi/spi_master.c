@@ -14,6 +14,7 @@
 #include "hal/spi_hal.h"
 #include "hal/spi_ll.h"
 #include "hal/hal_utils.h"
+#include "new_spi_ll.h"
 
 #define SPI_MASTER_ATTR IRAM_ATTR
 
