@@ -15,6 +15,7 @@
 
 #include "nvs_flash.h"
 #include "nvs_sec_provider.h"
+#include "esp_cpu.h"
 
 #define NVS_PART_LABEL       "nvs"
 #define NVS_PART_NAMESPACE   "device_state"
@@ -58,9 +59,11 @@ static void configure_led(void)
     led_strip_clear(led_strip);
 }
 
+extern void start_wifi_provisioning(void);
+extern void https_get_request_using_crt_bundle(void);
+
 void app_main(void)
 {
-
     /**
      * 1. Fetch the LED state from NVS
      * 2. Configure the LED
@@ -97,7 +100,9 @@ void app_main(void)
     // 2. Configure the LED
     configure_led();
     blink_led();
-    ESP_LOGI(TAG, "Device state restored: LED %s", s_led_state == 1 ? "ON" : "OFF");
+    uint32_t cycle_count = esp_cpu_get_cycle_count();
+    uint32_t cpu_ticks_per_ms = esp_rom_get_cpu_ticks_per_us() * 1000;
+    printf("Application: CPU get time (%ld) Device state restored: LED %s\n", cycle_count / cpu_ticks_per_ms, s_led_state == 1 ? "ON" : "OFF");
     vTaskDelay(1000 / portTICK_PERIOD_MS);
 
     // 3. Play with the LED state
@@ -126,4 +131,9 @@ void app_main(void)
     s_led_state = 0;
     ESP_LOGI(TAG, "Turning the LED %s!", s_led_state == 1 ? "ON" : "OFF");
     blink_led();
+
+    // 6. Start WiFi provisioning
+    start_wifi_provisioning();
+    // 7. Make an HTTPS request using the CRT bundle
+    https_get_request_using_crt_bundle();
 }

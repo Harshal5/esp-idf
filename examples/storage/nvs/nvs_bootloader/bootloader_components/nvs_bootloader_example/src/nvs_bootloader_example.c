@@ -8,6 +8,7 @@
 #include "nvs_bootloader.h"
 #include "nvs_sec_provider.h"
 #include "led_strip.h"
+#include "esp_cpu.h"
 
 #define NVS_PART_LABEL       "nvs"
 #define NVS_PART_NAMESPACE   "device_state"
@@ -63,16 +64,13 @@ static void configure_led(void)
 // this is the 'main' function of the example
 void bootloader_after_init(void) {
 
-#if CONFIG_NVS_ENCRYPTION
     nvs_sec_cfg_t cfg = {};
     nvs_sec_scheme_t *sec_scheme_handle = NULL;
-#if CONFIG_NVS_SEC_KEY_PROTECT_USING_HMAC
     nvs_sec_config_hmac_t sec_scheme_cfg = NVS_SEC_PROVIDER_CFG_HMAC_DEFAULT();
     if (nvs_sec_provider_register_hmac(&sec_scheme_cfg, &sec_scheme_handle) != ESP_OK) {
         ESP_EARLY_LOGE(TAG, "Registering the HMAC scheme failed");
         return;
     }
-#endif /* CONFIG_NVS_SEC_KEY_PROTECT_USING_HMAC */
 
     if (nvs_bootloader_read_security_cfg(sec_scheme_handle, &cfg) != ESP_OK) {
         ESP_EARLY_LOGE(TAG, "Reading the NVS security configuration failed");
@@ -97,9 +95,12 @@ void bootloader_after_init(void) {
     s_led_state = device_state_info[0].value.u8_val;
 
     nvs_bootloader_secure_deinit();
-#endif /* CONFIG_NVS_ENCRYPTION */
 
     configure_led();
+
     blink_led();
-    ESP_EARLY_LOGI(TAG, "Device state restored: LED %s", s_led_state == 1 ? "ON" : "OFF");
+
+    uint32_t cycle_count = esp_cpu_get_cycle_count();
+    uint32_t cpu_ticks_per_ms = esp_rom_get_cpu_ticks_per_us() * 1000;
+    esp_rom_printf("Bootloader: CPU get time (%ld) Device state restored: LED %s\n", cycle_count / cpu_ticks_per_ms, s_led_state == 1 ? "ON" : "OFF");
 }

@@ -1,5 +1,5 @@
-idf_component_register(SRCS "bootloader_hooks_example_main.c"
-                    REQUIRES nvs_flash nvs_sec_provider
+idf_component_register(SRCS "bootloader_hooks_example_main.c" "app_utilities.c"
+                    REQUIRES nvs_flash nvs_sec_provider esp_wifi wifi_provisioning esp-tls
                     INCLUDE_DIRS ".")
 
 if(NOT CONFIG_NVS_ENCRYPTION)
