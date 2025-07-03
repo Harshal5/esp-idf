@@ -1,5 +1,5 @@
 idf_component_register(SRCS "bootloader_hooks_example_main.c"
-                    REQUIRES nvs_flash
+                    REQUIRES nvs_flash nvs_sec_provider
                     INCLUDE_DIRS ".")
 
 if(NOT CONFIG_NVS_ENCRYPTION)

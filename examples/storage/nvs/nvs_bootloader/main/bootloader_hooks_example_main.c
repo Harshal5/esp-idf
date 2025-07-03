@@ -13,6 +13,12 @@
 #include "led_strip.h"
 #include "sdkconfig.h"
 
+#include "nvs_flash.h"
+#include "nvs_sec_provider.h"
+
+#define NVS_PART_LABEL       "nvs"
+#define NVS_PART_NAMESPACE   "device_state"
+
 static const char *TAG = "example";
 
 #define BLINK_GPIO 8
@@ -37,7 +43,6 @@ static void blink_led(void)
 
 static void configure_led(void)
 {
-    ESP_LOGI(TAG, "Example configured to blink addressable LED!");
     /* LED strip initialization with the GPIO and pixels number*/
     led_strip_config_t strip_config = {
         .strip_gpio_num = BLINK_GPIO,
@@ -56,14 +61,69 @@ static void configure_led(void)
 void app_main(void)
 {
 
-    /* Configure the peripheral according to the LED type */
-    configure_led();
+    /**
+     * 1. Fetch the LED state from NVS
+     * 2. Configure the LED
+     * 3. Play with the LED state
+     * 4. Save the LED state to NVS
+     */
 
-    while (1) {
-        ESP_LOGI(TAG, "Turning the LED %s!", s_led_state == true ? "ON" : "OFF");
-        blink_led();
-        /* Toggle the LED state */
+    // 1. Fetch the LED state from NVS
+    nvs_sec_cfg_t cfg = {};
+    nvs_sec_scheme_t *sec_scheme_handle = nvs_flash_get_default_security_scheme();
+
+    esp_err_t ret = nvs_flash_read_security_cfg_v2(sec_scheme_handle, &cfg);
+    if (ret != ESP_OK) {
+        /* We shall not generate keys here as that must have been done in default NVS partition initialization case */
+        ESP_LOGE(TAG, "Failed to read NVS security cfg: [0x%02X] (%s)", ret, esp_err_to_name(ret));
+    }
+
+    ret = nvs_flash_secure_init_partition(NVS_PART_LABEL, &cfg);
+    if (ret == ESP_OK) {
+        ESP_LOGI(TAG, "NVS partition \"%s\" is encrypted.", NVS_PART_LABEL);
+    }
+
+    nvs_handle_t my_handle;
+    ret = nvs_open_from_partition(NVS_PART_LABEL, NVS_PART_NAMESPACE, NVS_READWRITE, &my_handle);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to open NVS partition: [0x%02X] (%s)", ret, esp_err_to_name(ret));
+    }
+
+    ret = nvs_get_u8(my_handle, "switch", &s_led_state);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to get switch state: [0x%02X] (%s)", ret, esp_err_to_name(ret));
+    }
+
+    // 2. Configure the LED
+    configure_led();
+    blink_led();
+    ESP_LOGI(TAG, "Device state restored: LED %s", s_led_state == 1 ? "ON" : "OFF");
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+    // 3. Play with the LED state
+    for (int i = 0; i < 4; i++) {
         s_led_state = !s_led_state;
+        ESP_LOGI(TAG, "Turning the LED %s!", s_led_state == 1 ? "ON" : "OFF");
+        blink_led();
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
+
+    // 4. Save the LED state to NVS
+    ret = nvs_set_u8(my_handle, "switch", s_led_state);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to set switch state: [0x%02X] (%s)", ret, esp_err_to_name(ret));
+    }
+
+    ret = nvs_commit(my_handle);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to commit NVS partition: [0x%02X] (%s)", ret, esp_err_to_name(ret));
+    }
+
+    nvs_close(my_handle);
+
+    // 5. Power off the LED just to make sure the next idf.py monitor doesn't show the LED on by default
+    // and the bootloader does try enabling the LED
+    s_led_state = 0;
+    ESP_LOGI(TAG, "Turning the LED %s!", s_led_state == 1 ? "ON" : "OFF");
+    blink_led();
 }

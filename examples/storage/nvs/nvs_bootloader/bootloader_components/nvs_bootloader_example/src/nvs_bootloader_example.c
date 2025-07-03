@@ -9,6 +9,9 @@
 #include "nvs_sec_provider.h"
 #include "led_strip.h"
 
+#define NVS_PART_LABEL       "nvs"
+#define NVS_PART_NAMESPACE   "device_state"
+
 static const char* TAG = "nvs_bootloader_example";
 
 // Function used to tell the linker to include this file
@@ -21,13 +24,9 @@ void bootloader_hooks_include(void){
 void bootloader_before_init(void) {
 }
 
-
 #define BLINK_GPIO 8
-
 static uint8_t s_led_state = 0;
-
 static led_strip_handle_t led_strip;
-
 
 static void blink_led(void)
 {
@@ -45,7 +44,6 @@ static void blink_led(void)
 
 static void configure_led(void)
 {
-    ESP_LOGI(TAG, "Example configured to blink addressable LED!");
     /* LED strip initialization with the GPIO and pixels number*/
     led_strip_config_t strip_config = {
         .strip_gpio_num = BLINK_GPIO,
@@ -64,10 +62,6 @@ static void configure_led(void)
 // function hook called at the end of the bootloader standard code
 // this is the 'main' function of the example
 void bootloader_after_init(void) {
-    // we are going to read from the default nvs partition labelled 'nvs'
-    const char* nvs_partition_label = "nvs";
-
-    nvs_sec_cfg_t* sec_cfg = NULL;
 
 #if CONFIG_NVS_ENCRYPTION
     nvs_sec_cfg_t cfg = {};
@@ -76,16 +70,6 @@ void bootloader_after_init(void) {
     nvs_sec_config_hmac_t sec_scheme_cfg = NVS_SEC_PROVIDER_CFG_HMAC_DEFAULT();
     if (nvs_sec_provider_register_hmac(&sec_scheme_cfg, &sec_scheme_handle) != ESP_OK) {
         ESP_EARLY_LOGE(TAG, "Registering the HMAC scheme failed");
-        return;
-    }
-#elif CONFIG_NVS_SEC_KEY_PROTECT_USING_FLASH_ENC
-    nvs_sec_config_flash_enc_t sec_scheme_cfg = NVS_SEC_PROVIDER_CFG_FLASH_ENC_DEFAULT();
-    if (sec_scheme_cfg.nvs_keys_part == NULL) {
-        ESP_EARLY_LOGE(TAG, "partition with subtype \"nvs_keys\" not found");
-    }
-
-    if (nvs_sec_provider_register_flash_enc(&sec_scheme_cfg, &sec_scheme_handle) != ESP_OK) {
-        ESP_EARLY_LOGE(TAG, "Registering the Flash Encryption scheme failed");
         return;
     }
 #endif /* CONFIG_NVS_SEC_KEY_PROTECT_USING_HMAC */
@@ -99,19 +83,23 @@ void bootloader_after_init(void) {
         ESP_EARLY_LOGE(TAG, "Secure initialization of NVS failed");
         return;
     }
-#endif /* CONFIG_NVS_ENCRYPTION*/
 
-#if CONFIG_NVS_ENCRYPTION
+    nvs_bootloader_read_list_t device_state_info[] = {
+        { .namespace_name = "device_state",  .key_name = "switch",  .value_type = NVS_TYPE_U8 },
+    };
+
+    esp_err_t ret = nvs_bootloader_read(NVS_PART_LABEL, sizeof(device_state_info) / sizeof(nvs_bootloader_read_list_t), device_state_info);
+    if (ret != ESP_OK) {
+        ESP_EARLY_LOGE(TAG, "Reading the NVS partition failed");
+        return;
+    }
+
+    s_led_state = device_state_info[0].value.u8_val;
+
     nvs_bootloader_secure_deinit();
 #endif /* CONFIG_NVS_ENCRYPTION */
 
     configure_led();
-    while (1) {
-        ESP_EARLY_LOGI(TAG, "Turning the LED %s!", s_led_state == true ? "ON" : "OFF");
-        blink_led();
-        /* Toggle the LED state */
-        s_led_state = !s_led_state;
-        esp_rom_delay_us(1000000);
-    }
-
+    blink_led();
+    ESP_EARLY_LOGI(TAG, "Device state restored: LED %s", s_led_state == 1 ? "ON" : "OFF");
 }
