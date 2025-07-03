@@ -1,5 +1,2 @@
 dependencies:
-  led_strip:
-    path: ../led_strip
-  spi_driver:
-    path: ../spi_driver
+  espressif/led_strip: "^3.0.0"
