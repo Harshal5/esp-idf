@@ -7,6 +7,7 @@
 #pragma once
 
 #include "esp_err.h"
+#include "freertos/FreeRTOS.h"
 #include "hal/spi_types.h"
 //for spi_bus_initialization functions. to be back-compatible
 #include "driver/spi_common.h"
@@ -218,7 +219,7 @@ esp_err_t spi_bus_remove_device(spi_device_handle_t handle);
  *         - ESP_ERR_INVALID_STATE if previous transactions are not finished
  *         - ESP_OK                on success
  */
-esp_err_t spi_device_queue_trans(spi_device_handle_t handle, spi_transaction_t *trans_desc);
+esp_err_t spi_device_queue_trans(spi_device_handle_t handle, spi_transaction_t *trans_desc, TickType_t ticks_to_wait);
 
 /**
  * @brief Get the result of a SPI transaction queued earlier by ``spi_device_queue_trans``.
@@ -232,13 +233,15 @@ esp_err_t spi_device_queue_trans(spi_device_handle_t handle, spi_transaction_t *
  * @param trans_desc Pointer to variable able to contain a pointer to the description of the transaction
         that is executed. The descriptor should not be modified until the descriptor is returned by
         spi_device_get_trans_result.
+ * @param ticks_to_wait Ticks to wait until there's a returned item; use portMAX_DELAY to never time
+                        out.
  * @return
  *         - ESP_ERR_INVALID_ARG   if parameter is invalid
  *         - ESP_ERR_NOT_SUPPORTED if flag `SPI_DEVICE_NO_RETURN_RESULT` is set
  *         - ESP_ERR_TIMEOUT       if there was no completed transaction before ticks_to_wait expired
  *         - ESP_OK                on success
  */
-esp_err_t spi_device_get_trans_result(spi_device_handle_t handle, spi_transaction_t **trans_desc);
+esp_err_t spi_device_get_trans_result(spi_device_handle_t handle, spi_transaction_t **trans_desc, TickType_t ticks_to_wait);
 
 /**
  * @brief Send a SPI transaction, wait for it to complete, and return the result
@@ -279,7 +282,7 @@ esp_err_t spi_device_transmit(spi_device_handle_t handle, spi_transaction_t *tra
  *         - ESP_ERR_INVALID_STATE if previous transactions are not finished
  *         - ESP_OK                on success
  */
-esp_err_t spi_device_polling_start(spi_device_handle_t handle, spi_transaction_t *trans_desc);
+esp_err_t spi_device_polling_start(spi_device_handle_t handle, spi_transaction_t *trans_desc, TickType_t ticks_to_wait);
 
 /**
  * @brief Poll until the polling transaction ends.
@@ -296,7 +299,7 @@ esp_err_t spi_device_polling_start(spi_device_handle_t handle, spi_transaction_t
  *         - ESP_ERR_TIMEOUT       if the transaction cannot finish before ticks_to_wait expired
  *         - ESP_OK                on success
  */
-esp_err_t spi_device_polling_end(spi_device_handle_t handle);
+esp_err_t spi_device_polling_end(spi_device_handle_t handle, TickType_t ticks_to_wait);
 
 /**
  * @brief Send a polling transaction, wait for it to complete, and return the result
@@ -318,6 +321,29 @@ esp_err_t spi_device_polling_end(spi_device_handle_t handle);
  *         - ESP_OK                on success
  */
 esp_err_t spi_device_polling_transmit(spi_device_handle_t handle, spi_transaction_t *trans_desc);
+
+/**
+ * @brief Occupy the SPI bus for a device to do continuous transactions.
+ *
+ * Transactions to all other devices will be put off until ``spi_device_release_bus`` is called.
+ *
+ * @note The function will wait until all the existing transactions have been sent.
+ *
+ * @param device The device to occupy the bus.
+ * @param wait Time to wait before the the bus is occupied by the device. Currently MUST set to portMAX_DELAY.
+ *
+ * @return
+ *      - ESP_ERR_INVALID_ARG : ``wait`` is not set to portMAX_DELAY.
+ *      - ESP_OK : Success.
+ */
+esp_err_t spi_device_acquire_bus(spi_device_handle_t device, TickType_t wait);
+
+/**
+ * @brief Release the SPI bus occupied by the device. All other devices can start sending transactions.
+ *
+ * @param dev The device to release the bus.
+ */
+void spi_device_release_bus(spi_device_handle_t dev);
 
 /**
  * @brief Calculate working frequency for specific device
@@ -368,6 +394,18 @@ void spi_get_timing(bool gpio_is_used, int input_delay_ns, int eff_clk, int *dum
   * @return Frequency limit of current configurations.
   */
 int spi_get_freq_limit(bool gpio_is_used, int input_delay_ns);
+
+/**
+ * @brief Get max length (in bytes) of one transaction
+ *
+ * @param       host_id    SPI peripheral
+ * @param[out]  max_bytes  Max length of one transaction, in bytes
+ *
+ * @return
+ *        - ESP_OK:               On success
+ *        - ESP_ERR_INVALID_ARG:  Invalid argument
+ */
+esp_err_t spi_bus_get_max_transaction_len(spi_host_device_t host_id, size_t *max_bytes);
 
 #ifdef __cplusplus
 }
